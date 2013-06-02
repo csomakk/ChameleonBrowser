@@ -1,0 +1,320 @@
+<?xml version="1.0" encoding="utf-8"?>
+<s:Application xmlns:fx="http://ns.adobe.com/mxml/2009"
+			   xmlns:s="library://ns.adobe.com/flex/spark"
+			   xmlns:text="qnx.ui.text.*"
+			   xmlns:progress="qnx.ui.progress.*"
+			   xmlns:buttons="qnx.ui.buttons.*"
+			   xmlns:local="*"
+			   applicationDPI="160" 
+			   creationComplete="onCreationComplete(event)">
+	<fx:Script>
+		<![CDATA[
+			import mx.core.UIComponent;
+			import mx.events.FlexEvent;
+			import mx.events.ResizeEvent;
+			
+			import qnx.events.NetworkErrorEvent;
+			import qnx.events.QNXApplicationEvent;
+			import qnx.events.WebDownloadRequestEvent;
+			import qnx.events.WebViewEvent;
+			import qnx.fuse.ui.dialog.ToastBase;
+			import qnx.media.HistoryItem;
+			import qnx.media.QNXStageWebView;
+			import qnx.system.QNXApplication;
+			
+			public static var instance:ChameleonBrowser;
+			
+			private var webView:qnx.media.QNXStageWebView;
+			private var settingsPanel:SettingsGroup = new SettingsGroup();
+			public var progressBarHolderMC:MovieClip = new MovieClip();
+			private var _progress:Number;
+			public var defaultUserAgent:String;
+			
+			protected function onCreationComplete(event:FlexEvent):void {
+				setTimeout(initAndLoad, 200);
+			}	
+			
+			public function initAndLoad():void {
+				instance = this;
+				listenAddedToStage();
+				loadSettings();
+			}
+				
+			public function listenAddedToStage(e:Error = null):void {
+				if(stage) {
+					onAddedToStage();
+				} else {
+					addEventListener(Event.ADDED_TO_STAGE, onAddedToStage);
+				}
+			}
+				
+			public function clearBrowsingData():void {
+				webView.clearBrowsingData();
+				toast('Browsing data cleared');
+			}
+				
+			public function initWebView():void {
+							
+				webView = new QNXStageWebView();
+				webView.stage = stage;
+				webView.zOrder = -1;
+				
+				webView.viewPort = new Rectangle(0, 0, width * 2, height * 2 - 1);
+				
+                webView.addEventListener(WebViewEvent.DOCUMENT_LOAD_FINISHED, onDocumentLoadFinish);
+				webView.addEventListener(WebViewEvent.DOCUMENT_LOAD_FAILED, onDocumentLoadFail); 
+				webView.addEventListener(WebViewEvent.DOCUMENT_LOAD_COMMITTED, onDocumentLoadCommitted)
+                webView.addEventListener(WebDownloadRequestEvent.DOWNLOAD_REQUEST, onWebDownloadRequest)
+				webView.addEventListener("error", onError);
+					
+				//webView.zoomToFitWidthOnLoad = true;
+				webView.blockPopups = false;
+				//webView.zOrder = 0;
+				
+				webView.defaultFontSize *= 2;
+                webView.enableCookies = true;
+				
+				
+				defaultUserAgent = webView.userAgent;
+				menuGroup.refreshUserAgent();
+				
+                var ui:UIComponent = new UIComponent();
+				ui.addChild(progressBarHolderMC);
+				progressBarHolderMC.y = height - 2;
+				this.addElement(ui);
+				
+				progress = 0;
+				stage.addEventListener(Event.ENTER_FRAME, progressCheck);				
+			}
+			
+			public function getUserAgent():String {
+				return webView.userAgent;
+			}
+			
+			public function set privateBrowsing(value:Boolean):void {
+				webView.privateBrowsing = value;
+			}
+			public function get privateBrowsing():Boolean {
+				return webView.privateBrowsing;
+			}
+			
+			public function set progress(progressInPercent:Number):void {
+				_progress=progressInPercent;
+				progressBarHolderMC.graphics.clear()
+				progressBarHolderMC.graphics.beginFill(0x0073bc, 1.0)
+				progressBarHolderMC.graphics.drawRect(0,0,width / 100 * progressInPercent,2) 
+			}
+			
+			public function get progress():Number {
+				return _progress;
+			}
+			
+			private function onDocumentLoadCommitted(e:Event=null):void {
+				stage.addEventListener(Event.ENTER_FRAME, progressCheck);
+				progress = 0;
+				hideMenu();
+			}
+			
+			public function search(what:String):void {
+				gotoUrl("http://www.google.com/search?q=" + what);
+			}
+			
+			
+			
+			public function gotoUrl(url:String, userAgent:String=null):void {
+				setUserAgent(userAgent, false);
+				
+				menuGroup.refreshUserAgent();
+				
+				toast("loading " + url)
+				if(url.search("http") != 0){
+					url = "http://" +url;
+				}
+				
+				webView.loadURL(url)
+				menuGroup.txtURL.text = url
+					
+				stage.addEventListener(Event.ENTER_FRAME, progressCheck);
+				progress = 0;
+				hideSpeedDial();
+			}
+			
+			private function progressCheck(event:Event):void  {
+				//event.stopPropagation();
+				if(progress != webView.loadProgress) {
+					progress = webView.loadProgress;
+					if (webView.loadProgress == 100) {
+						stage.removeEventListener(Event.ENTER_FRAME, progressCheck);
+					}
+				}
+			}
+			
+			private function onDocumentLoadFinish(event:WebViewEvent):void {
+				try {
+					menuGroup.txtURL.text = (webView.historyList[webView.historyPosition] as HistoryItem).url;
+				} catch(e:Error){
+					
+				}
+				progressBarHolderMC.graphics.clear();
+				//TODO removelistener to progressupdate and listen again elsewhere
+			}
+			
+			private function onDocumentLoadFail(event:WebViewEvent):void {
+				toast("Document Load Fail"+ (webView.historyList[webView.historyPosition] as HistoryItem).url);
+			}
+			
+			public function imagesEnabled(bool:Boolean):void {
+				webView.loadImages = bool;
+			}
+			
+			public function pluginsEnabled(bool:Boolean):void {
+				webView.enablePlugins = bool;
+			}
+			
+			public function back():void  {
+				webView.historyBack();
+			}
+			
+			public function forward():void  {
+				webView.historyForward();
+			}
+			
+			public function refresh():void  {
+				webView.reload();
+			}
+            
+            public function toggleMenu():void {
+                if(menuGroup.y == 0) {
+                    hideMenu();
+                } else {
+                    showMenu();
+                }
+            }
+            
+            public function showMenu():void { 
+               webView.viewPort = new Rectangle(0,menuGroup.height * 2,width * 2,height * 2 - 2);
+			   menuGroup.y = 0;
+            }
+			
+            public function hideMenu():void {
+               webView.viewPort = new Rectangle(0,0, width * 2, height * 2 - 2)
+			   menuGroup.y = 0 - menuGroup.height;
+            }
+			
+			public function toast(message:String):void {
+				var t:qnx.fuse.ui.dialog.ToastBase = new ToastBase();
+				t.message = message;
+				t.show();
+			}
+			
+			public function showSpeedDial():void {
+				webView.zOrder = -1;
+				speedDialView.visible = true;
+				hideMenu();
+			}
+			
+			public function isSpeedDialShown():Boolean{
+				return speedDialView.visible;
+			}
+			
+			public function hideSpeedDial():void {
+				webView.zOrder = 0;
+				speedDialView.visible = false;
+			}
+			
+			public function showSettings():void {
+				trace("Chameleon: showSettings", webView.userAgent)
+				
+				addElement(settingsPanel);
+				webView.zOrder = -1;
+			}
+			
+			public function hideSettings():void {
+				removeElement(settingsPanel)
+				webView.zOrder = 0
+			}
+			
+			public function setUserAgent(to:String, reload:Boolean=true):void {
+				trace("Chameleon: userAgent", webView.userAgent);
+				if(to != null && to != "") {
+					webView.userAgent = to;
+				} else {
+					webView.userAgent = defaultUserAgent;
+				}
+				webView.reload();
+				
+			}
+			
+			protected function onWebDownloadRequest(event:WebDownloadRequestEvent):void {
+				trace("Chameleon: onWebDownloadRequest")
+				//webView.downloadRemove(event.downloadId)
+				webView.downloadResume(event.downloadId);
+				toast("sorry, I couldn't test this yet, it possibly won't work :(");
+				
+			}
+			
+			public function saveSettings(e:Event = null):void {
+				trace("Chameleon: saveSettings", new Date().time);
+				var file:File = File.applicationStorageDirectory;
+				file = file.resolvePath("settings.xml"); 
+				var xml:XML=new XML("<settings/>")
+				for each(var item:SpeedDialItem in speedDialView.itemsArrayCollection) {
+					//var xml:
+					var itemXml:XML = <speedDialItem>
+										<name/><iconUrl/><link/><userAgent/>
+									</speedDialItem>
+						;
+					itemXml.name = item.name;
+					itemXml.iconUrl = item.iconUrl;
+					itemXml.link = item.link;
+					itemXml.userAgent = item.userAgent;
+					xml.appendChild(itemXml)
+				}
+					
+				new CsUtils().saveAsXML(xml, file.url);
+			}
+			
+			public function loadSettings():void {
+				var file:File = File.applicationStorageDirectory;
+				file = file.resolvePath("settings.xml"); 
+				trace("Chameleon: loadSettings", file.url)
+				if(file.exists){
+					var xml:XML = new CsUtils().loadXML(file.url)
+					if(xml != null){
+						for each(var item:XML in xml.speedDialItem){
+							var tmp:SpeedDialItem = new SpeedDialItem(item.name, item.link, item.iconUrl, item.userAgent);
+							speedDialView.itemsArrayCollection.addItem(tmp);
+						}
+						
+					}
+				} else {
+					speedDialView.loadDefaults();
+					saveSettings();
+				}
+			}
+			
+			protected function onAddedToStage(event:Event = null):void {
+				initWebView();
+				hideMenu();
+				addEventListener(ResizeEvent.RESIZE, onResize);
+				QNXApplication.qnxApplication.addEventListener( QNXApplicationEvent.SWIPE_DOWN, swipeDown );
+			}
+			
+			protected function onResize(event:ResizeEvent):void {
+				webView.viewPort = new Rectangle(0, 0, width * 2, height * 2 - 2);
+			}
+			
+			protected function swipeDown(event:Event):void {
+				toggleMenu();
+			}
+			
+			
+			protected function onError(event:NetworkErrorEvent):void {
+				toast("Network error " + event.toString())
+			}
+			
+		]]>	
+	</fx:Script>	
+	<local:SpeedDialView id="speedDialView" left="0" right="0" top="{menuGroup.y + menuGroup.height}" bottom="0"  />
+	<local:MenuGroup id="menuGroup" left="0" y="-100" right="0"  />
+</s:Application>

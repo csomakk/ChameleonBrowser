@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="utf-8"?>
+<s:Group xmlns:fx="http://ns.adobe.com/mxml/2009" 
+		 width="100%"
+		 height="100%"
+		xmlns:s="library://ns.adobe.com/flex/spark" >
+	<fx:Script>
+		<![CDATA[
+			
+			protected var item:SpeedDialItem;
+			
+			public function setData(data:SpeedDialItem):void {
+				item = data;
+				nameTextInput.text = data.name;
+				url.text = data.link
+				icon.text = data.iconUrl
+				useragent.text = data.userAgent;
+			}
+			
+			protected function submitBtn_clickHandler(event:MouseEvent):void {
+				item.name = nameTextInput.text;
+				item.link = url.text;
+				item.iconUrl = icon.text;
+				item.userAgent = useragent.text;
+				ChameleonBrowser.instance.saveSettings();
+				close();
+			}
+			
+			protected function close():void {
+				(parent as Group).removeElement(this);
+			}
+			
+		]]>
+	</fx:Script>
+	<s:Form id="frm" defaultButton="{submitBtn}" width="100%" height="100%" >
+		<s:layout>
+			<s:FormLayout id="frmLay" gap="7" />
+		</s:layout>
+		<s:FormHeading label="Speed Dial Item" />
+		<s:FormItem label="name">
+			<s:TextInput id="nameTextInput" />
+		</s:FormItem>
+		<s:FormItem label="url">
+			<s:TextInput id="url" />
+		</s:FormItem>
+		<s:FormItem label="icon">
+			<s:TextInput id="icon" />
+		</s:FormItem>
+		<s:FormItem label="user agent">
+			<s:TextInput id="useragent" />
+		</s:FormItem>
+		<s:FormItem>
+			<s:layout>
+				<s:HorizontalLayout />
+			</s:layout>
+			<s:Button id="resetBtn" label="Cancel" click="close()" />
+			<s:Button id="submitBtn" label="Finish" click="submitBtn_clickHandler(event)" />
+		</s:FormItem>
+	</s:Form>
+</s:Group>

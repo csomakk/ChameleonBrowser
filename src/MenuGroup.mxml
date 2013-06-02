@@ -1,0 +1,103 @@
+<?xml version="1.0" encoding="utf-8"?>
+<s:Group xmlns:fx="http://ns.adobe.com/mxml/2009" 
+		 xmlns:s="library://ns.adobe.com/flex/spark" width="100%" height="90">
+	<fx:Script>
+		<![CDATA[
+			import qnx.events.WebViewEvent;
+			
+			protected function togglePrivateBrowsing(event:MouseEvent = null):void {
+				ChameleonBrowser.instance.privateBrowsing = !ChameleonBrowser.instance.privateBrowsing;
+				if(ChameleonBrowser.instance.privateBrowsing) {
+					privateImage.source="download/private.png"
+				} else {
+					privateImage.source="download/no_private.png"
+				}
+			}
+			
+			protected function speedDial_clickHandler(event:MouseEvent):void {
+				if(ChameleonBrowser.instance.isSpeedDialShown()) {
+					ChameleonBrowser.instance.hideSpeedDial();
+				} else {
+					ChameleonBrowser.instance.showSpeedDial();
+				}
+			}
+			
+			protected function addToSpeedDial(event:MouseEvent):void {
+				var item:SpeedDialItem = new SpeedDialItem("",txtURL.text,"download/dakirby/Other/Default",ChameleonBrowser.instance.getUserAgent());
+				ChameleonBrowser.instance.speedDialView.itemsArrayCollection.addItem(item);
+				ChameleonBrowser.instance.speedDialView.bringUpItemEditor(item);
+			}
+			
+			public function refreshUserAgent():void {
+				return; //TODO this is not wired in as its not working. we should make current user agent visible.
+				var ua:String = ChameleonBrowser.instance.getUserAgent();
+				userAgentChrome.alpha = 0.5;
+				userAgentDefault.alpha = 0.5;
+				userAgentFirefox.alpha = 0.5;
+				userAgentIpad.alpha = 0.5;
+				userAgentIphone.alpha = 0.5;
+				if( ua == UserAgents.CHROME) {
+					userAgentChrome.alpha = 1;
+				} else if(ua == UserAgents.FIREFOX) {
+					userAgentFirefox.alpha = 1;
+				} else if(ua == UserAgents.IPAD) {
+					userAgentIpad.alpha = 1;
+				} else if(ua == UserAgents.IPHONE) {
+					userAgentIphone.alpha = 1;
+				} else {
+					userAgentDefault.alpha = 1;
+				}
+				
+			}
+			
+		]]>
+	</fx:Script>
+	<s:Rect width="100%" height="100%">
+		<s:fill>
+			<s:SolidColor color="0x262626" />
+		</s:fill>
+	</s:Rect>
+	<s:Rect y="45" left="225" right="0" height="45" >
+		<s:fill>
+			<s:SolidColor color="0x161616" />
+		</s:fill>
+	</s:Rect>
+	<s:TextInput id="txtURL" y="45" left="225" right="6" height="45" color="#F6F6F6"
+				 contentBackgroundColor="0x161616"
+				 borderVisible="false" 
+				 enter="ChameleonBrowser.instance.gotoUrl(txtURL.text)"/>
+	<s:Image right="101" width="45" height="45" click="ChameleonBrowser.instance.back()"
+			 smooth="true" source="download/Action_Icons_BlackBerry_10/ic_previous.png"/>
+	<s:Image right="48" width="45" height="45" click="ChameleonBrowser.instance.forward()"
+			 smooth="true" source="download/Action_Icons_BlackBerry_10/ic_next.png"/>
+	<s:Image right="154" width="45" height="45" click="ChameleonBrowser.instance.refresh()"
+			 smooth="true" source="download/Action_Icons_BlackBerry_10/ic_rotate.png"/>
+	<s:Image right="0" width="45" height="45" click="speedDial_clickHandler(event)"
+			 smooth="true" source="@Embed('download/Action_Icons_BlackBerry_10/ic_view_grid.png')"/>
+	<s:Image width="44" height="44" click="ChameleonBrowser.instance.showSettings()" smooth="true"
+			 source="download/Action_Icons_BlackBerry_10/ic_settings.png"/>
+	<s:Image x="107" width="44" height="44" 
+			 click="addToSpeedDial(event)"
+			 smooth="true" source="download/Action_Icons_BlackBerry_10/ic_add.png"/>
+	<s:Image id="privateImage" x="50" width="45" height="45" click="togglePrivateBrowsing(event)"
+			 smooth="true" source="download/private.png"/>
+	<s:Image id="userAgentIphone" x="0" y="45" width="45" height="45"
+			 smooth="true"
+			 click="ChameleonBrowser.instance.setUserAgent( UserAgents.IPHONE );"
+			 source="download/1359284017_iPhone.png"/>
+	<s:Image id="userAgentIpad" x="45" y="45" width="45" height="45"
+			 smooth="true"
+			 click="ChameleonBrowser.instance.setUserAgent( UserAgents.IPAD );"
+			 source="download/1359284396_iPad.png"/>
+	<s:Image id="userAgentFirefox" x="135" y="45" width="45" height="45"
+			 smooth="true"
+			 click="ChameleonBrowser.instance.setUserAgent(	UserAgents.FIREFOX );"
+			 source="download/dakirby/Firefox.png"/>
+	<s:Image id="userAgentDefault" x="180" y="45" width="45" height="45" scaleMode="stretch" smooth="true"
+			 click="ChameleonBrowser.instance.setUserAgent(ChameleonBrowser.instance.defaultUserAgent)"
+			 source="download/bb.PNG"/>
+	<s:Image id="userAgentChrome" x="90" y="45" width="45" height="45"
+			 smooth="true"
+			 click="ChameleonBrowser.instance.setUserAgent( UserAgents.CHROME );"
+			 source="download/dakirby/Google Chrome.png"/>
+</s:Group>
