@@ -9,3 +9,7 @@ This can be an awesome project, if we'll work on it together.
 
 Cheers,
 Gabor
+
+
+[![Bitdeli Badge](https://d2weczhvl823v0.cloudfront.net/csomakk/ChameleonBrowser/trend.png)](https://bitdeli.com/free "Bitdeli Badge")
+
